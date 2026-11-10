@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  LEARNER
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id               String    @id @default(uuid()) @db.Uuid
+  username         String    @unique
+  email            String    @unique
+  passwordHash     String
+  xp               Int       @default(0)
+  streak           Int       @default(0)
+  lessonsCompleted Int       @default(0)
+  role             Role      @default(LEARNER)
+  tokenVersion     Int       @default(0)
+  lastActiveAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  attempts      PronunciationAttempt[]
+  completions   LessonCompletion[]
+  refreshTokens RefreshToken[]
+
+  @@index([xp(sort: Desc), username])
+  @@index([lastActiveAt])
+}
+
+model PronunciationAttempt {
+  id                 String   @id @default(uuid()) @db.Uuid
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String   @db.Uuid
+  lessonId           String
+  target             String
+  heard              String
+  score              Int
+  xpGained           Int
+  feedback           String
+  pronunciationMatch Boolean
+  language           String
+  modelVersion       String   @default("demo-text-v1")
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([lessonId, createdAt])
+}
+
+model LessonCompletion {
+  id        String   @id @default(uuid()) @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.Uuid
+  lessonId  String
+  language  String
+  xpAwarded Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+  @@index([userId, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @db.Uuid
+  familyId  String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([familyId, revokedAt])
+}

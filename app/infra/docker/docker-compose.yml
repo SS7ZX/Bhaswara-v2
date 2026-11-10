@@ -1,0 +1,78 @@
+services:
+  migrate:
+    image: bhaswara-api:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    command: ["npm", "--workspace", "@bhaswara/api", "run", "db:migrate"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in app/.env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in app/.env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: bhaswara-api:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in app/.env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in app/.env}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in app/.env}
+      ENABLE_DEMO_TEXT_SCORING: "false"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ai:
+    image: bhaswara-ai:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.ai
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bhaswara
+      POSTGRES_USER: bhaswara
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in app/.env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bhaswara -d bhaswara"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

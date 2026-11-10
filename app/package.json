@@ -1,0 +1,41 @@
+{
+  "name": "bhaswara",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "start": "npm --workspace @bhaswara/mobile run start",
+    "android": "npm --workspace @bhaswara/mobile run android",
+    "ios": "npm --workspace @bhaswara/mobile run ios",
+    "web": "npm --workspace @bhaswara/mobile run web",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "check": "npm run format && npm run lint && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.1",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.17.1",
+    "@typescript-eslint/parser": "^8.17.1",
+    "eslint": "^9.21.1",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.17.1",
+    "vitest": "^3.2.4"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,md}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  }
+}
